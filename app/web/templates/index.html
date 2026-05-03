@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Yamaha R-N500</title>
+  <link rel="icon" type="image/png" sizes="32x32"   href="/static/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48"   href="/static/favicon-48.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/static/amplifier.png">
+  <link rel="apple-touch-icon"                      href="/static/amplifier.png">
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#f1f5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f172a"  media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Yamaha">
+  <script>tailwind = { config: { darkMode: 'media' } };</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ═══════════════════════════════════════════════════════════════════════
+       CSS CUSTOM PROPERTIES — nadpisuj tutaj by zmieniać wygląd aplikacji.
+       Każda zmienna odpowiada jednej właściwości wizualnej.
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    :root {
+      /* --- Typografia --- */
+      --font-scale:    1.4;        /* zmień JS-em; skaluje całą typografię */
+      --font-base:     1rem;
+      --font-sm:       0.875rem;
+      --font-xs:       0.75rem;
+      --font-lg:       1.125rem;
+      --font-4xl:      2.25rem;
+      --font-weight-label: 500;
+
+      /* --- Kolory (tryb jasny) --- */
+      --color-bg:          #f1f5f9;   /* tło strony */
+      --color-card:        #ffffff;   /* tło kart */
+      --color-card-alt:    #f8fafc;   /* tło sekcji radio playing */
+      --color-btn:         #f1f5f9;   /* tło przycisków */
+      --color-btn-hover:   #e2e8f0;
+      --color-input-bg:    #f1f5f9;   /* tło pola wyszukiwania */
+      --color-text:        #0f172a;   /* tekst główny */
+      --color-text-sec:    #64748b;   /* tekst drugorzędny */
+      --color-text-muted:  #94a3b8;   /* etykiety, podpowiedzi */
+      --color-border:      #e2e8f0;   /* krawędzie kart */
+      --color-accent:      #0ea5e9;   /* aktywny kolor akcentu (sky-500) */
+      --color-accent-bg:   #e0f2fe;   /* tło aktywnego elementu */
+      --color-accent-text: #0369a1;   /* tekst na tle akcentu */
+      --color-on:          #22c55e;   /* kolor wskaźnika On (green) */
+      --color-on-bg:       #dcfce7;
+      --color-danger:      #f43f5e;   /* stop / błąd */
+      --color-danger-bg:   #fff1f2;
+      --color-track:       #cbd5e1;   /* suwak — tor */
+      --color-thumb:       #0ea5e9;   /* suwak — uchwyt */
+      --color-ws-ok:       #4ade80;   /* wskaźnik WebSocket */
+      --color-ws-err:      #94a3b8;
+
+      /* Napis głośności — stały rozmiar px, nie rośnie z --font-scale.
+         Celowo mniejszy niż reszta tekstu. By zmienić rozmiar edytuj TYLKO tę wartość. */
+      --font-vol-display: 38px;
+      --radius-card:   1rem;
+      --radius-btn:    0.75rem;
+      --radius-input:  0.75rem;
+      --radius-pill:   9999px;
+
+      /* --- Odstępy --- */
+      --pad-card:      1rem;
+      --gap-section:   0.75rem;
+    }
+
+    /* Tryb ciemny — nadpisz zmienne, reszta CSS automatycznie */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg:          #0f172a;
+        --color-card:        #1e293b;
+        --color-card-alt:    #162032;
+        --color-btn:         #334155;
+        --color-btn-hover:   #3e4f63;
+        --color-input-bg:    #334155;
+        --color-text:        #f1f5f9;
+        --color-text-sec:    #94a3b8;
+        --color-text-muted:  #64748b;
+        --color-border:      #334155;
+        --color-accent-bg:   rgba(14,165,233,.18);
+        --color-accent-text: #7dd3fc;
+        --color-on-bg:       rgba(34,197,94,.15);
+        --color-danger-bg:   rgba(244,63,94,.15);
+        --color-track:       #334155;
+      }
+    }
+
+    /* ── Skalowanie czcionki (przyciskami A+ / A−) ─────────────────────── */
+    html {
+      font-size: calc(16px * var(--font-scale, 1));
+    }
+
+    /* ── Globalne ────────────────────────────────────────────────────────── */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    /* ── Napis głośności (#vol-display) — nie rośnie ponad --font-vol-display ── */
+    #vol-display {
+      font-size: var(--font-vol-display) !important;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+    }
+
+    /* ── Suwak głośności (#vol-slider) ──────────────────────────────────── */
+    #vol-slider {
+      -webkit-appearance: none; appearance: none;
+      height: 6px; border-radius: 3px; outline: none;
+      background: var(--color-track);
+      cursor: pointer;
+    }
+    #vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--color-thumb); cursor: pointer;
+    }
+    #vol-slider::-moz-range-thumb {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--color-thumb); border: none; cursor: pointer;
+    }
+
+    /* ── Przyciski ────────────────────────────────────────────────────────── */
+    .btn { transition: transform 0.1s, opacity 0.15s; }
+    .btn:active { transform: scale(0.92); }
+
+    /* Stan oczekiwania — natychmiastowe przyciemnienie po kliknięciu */
+    .btn-pending { opacity: 0.5 !important; cursor: wait !important; }
+
+    /* Stan potwierdzenia — krótki zielony błysk po odpowiedzi serwera */
+    .btn-confirmed { background-color: rgba(34,197,94,0.25) !important; }
+
+    /* Aktywne źródło (podświetlone) */
+    .inp-active {
+      background-color: var(--color-accent) !important;
+      color: #fff !important;
+    }
+
+    /* ── Ustawienia — popover rozmiaru czcionki (#settings-popover) ──────── */
+    #settings-popover {
+      position: fixed;
+      top: 3rem; right: 0.75rem;
+      z-index: 50;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-btn);
+      padding: 0.75rem 1rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-width: 15rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    }
+    #settings-popover.open { display: flex; }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .settings-hr {
+      border: none;
+      border-top: 1px solid var(--color-border);
+      margin: 0.1rem 0;
+    }
+    #settings-popover span {
+      font-size: var(--font-sm);
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+    .font-btn {
+      width: 2rem; height: 2rem;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn);
+      color: var(--color-text);
+      font-size: var(--font-base);
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none;
+      transition: background 0.1s;
+    }
+    .font-btn:hover { background: var(--color-btn-hover); }
+    #font-scale-label {
+      font-size: var(--font-xs);
+      color: var(--color-text-sec);
+      min-width: 2.5rem;
+      text-align: center;
+    }
+    #install-msg {
+      flex: 1;
+      font-size: var(--font-xs) !important;
+      color: var(--color-text-sec) !important;
+      white-space: normal !important;
+      line-height: 1.3;
+    }
+
+    /* ── Standalone (PWA) — ogranicz szerokość okna w Brave/Chrome ─────────── */
+    @media (display-mode: standalone) {
+      body {
+        max-width: 30rem;
+        margin-left: auto;
+        margin-right: auto;
+        border-left: 1px solid var(--color-border);
+        border-right: 1px solid var(--color-border);
+        min-height: 100vh;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
+
+  <!-- ── Header ── -->
+  <header class="bg-white/90 dark:bg-slate-800/90 backdrop-blur px-4 py-2.5 flex items-center justify-between sticky top-0 z-10 shadow-sm border-b border-slate-200 dark:border-slate-700/50">
+    <div class="flex items-center gap-2">
+      <span id="dot-power" class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600 transition-colors"></span>
+      <span class="text-sm font-semibold tracking-wide">Yamaha R-N500</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="hdr-input" class="text-xs text-slate-500 font-medium">—</span>
+      <button id="btn-install" onclick="installPWA()" title="Zainstaluj aplikację"
+              class="btn hidden w-7 h-7 rounded-lg bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center text-sm text-sky-600 dark:text-sky-400">⬇</button>
+      <span id="dot-ws" class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 transition-colors" title="WebSocket"></span>
+      <button id="settings-btn" onclick="toggleSettings(event)" title="Ustawienia"
+              class="btn w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">⚙</button>
+    </div>
+  </header>
+
+  <!-- ── Settings popover ── -->
+  <div id="settings-popover">
+    <div class="settings-row">
+      <span>Font</span>
+      <button class="font-btn" onclick="changeFontScale(-0.1)">A−</button>
+      <span id="font-scale-label">100%</span>
+      <button class="font-btn" onclick="changeFontScale(+0.1)">A+</button>
+      <button class="font-btn" onclick="resetFontScale()" title="Reset">↺</button>
+    </div>
+    <hr class="settings-hr">
+    <div class="settings-row">
+      <span id="install-msg">…</span>
+      <button id="install-btn-s" class="font-btn hidden" onclick="installPWA()" title="Zainstaluj">⬇</button>
+    </div>
+  </div>
+
+  <main class="max-w-sm mx-auto px-3 py-4 space-y-3">
+
+    <!-- ── Volume + Power ── -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between mb-3">
+        <div id="vol-display" class="text-4xl font-bold tabular-nums tracking-tight">— dB</div>
+        <div class="flex items-center gap-2">
+          <button id="btn-mute" onclick="toggleMute(this)"
+                  class="btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xl">
+            <span id="icon-mute">🔊</span>
+          </button>
+          <button id="btn-power" onclick="togglePower(this)"
+                  class="btn h-10 px-3 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm font-medium flex items-center gap-1.5">
+            <span class="text-base leading-none">⏻</span>
+            <span id="lbl-power" class="text-slate-500 dark:text-slate-400">Standby</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="adjustVolume(-5)"
+                class="btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 text-2xl font-light flex items-center justify-center select-none">−</button>
+        <input type="range" id="vol-slider" min="-800" max="0" step="5" value="-400"
+               class="flex-1" oninput="setVolumeTarget(this.value)">
+        <button onclick="adjustVolume(5)"
+                class="btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 text-2xl font-light flex items-center justify-center select-none">+</button>
+      </div>
+    </div>
+
+    <!-- ── Sources ── -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm">
+      <div class="text-xs text-slate-400 mb-3 uppercase tracking-widest">Źródło sygnału</div>
+      <div id="input-grid" class="grid grid-cols-2 gap-2"></div>
+    </div>
+
+    <!-- ── NET RADIO ── -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
+
+      <!-- Now playing (visible when active) -->
+      <div id="radio-playing-section" class="hidden bg-sky-50 dark:bg-sky-900/30 border-b border-sky-100 dark:border-sky-800/40 px-4 py-3">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <div id="radio-station-name" class="text-sm font-semibold text-sky-700 dark:text-sky-300 truncate">—</div>
+            <div id="radio-song-title" class="text-xs text-sky-600 dark:text-sky-400 mt-0.5 line-clamp-2 hidden">
+              <span class="mr-1">🎵</span><span id="radio-song-text"></span>
+            </div>
+          </div>
+          <button onclick="radioStop()"
+                  class="btn shrink-0 text-xs text-rose-500 dark:text-rose-400 px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-900/30">
+            ⏹ Stop
+          </button>
+        </div>
+      </div>
+
+      <!-- Station list -->
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs text-slate-400 uppercase tracking-widest">Stacje radiowe</div>
+          <button onclick="loadRadio()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-base px-1" title="Odśwież">↻</button>
+        </div>
+        <div class="relative mb-3">
+          <input id="radio-filter" type="search" placeholder="Szukaj stacji…"
+                 oninput="filterRadio(this.value)"
+                 class="w-full text-sm rounded-xl px-3 py-2 pl-7
+                        bg-slate-100 dark:bg-slate-700/80
+                        text-slate-700 dark:text-slate-300
+                        placeholder-slate-400 dark:placeholder-slate-500
+                        border border-slate-200 dark:border-slate-600/50
+                        focus:outline-none focus:ring-2 focus:ring-sky-400/50">
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none">🔍</span>
+        </div>
+        <div id="radio-list" class="space-y-1">
+          <div class="text-xs text-slate-400 text-center py-2">ładowanie…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Speaker A/B — set SHOW_SPEAKERS=true to restore -->
+    <div id="speakers-section" style="display:none"
+         class="bg-white/50 dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm opacity-40 pointer-events-none select-none">
+      <div class="text-xs text-slate-400 mb-3 uppercase tracking-widest">Głośniki A / B</div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-xl bg-slate-100 dark:bg-slate-700 py-3 text-center text-sm">🔈 A</div>
+        <div class="rounded-xl bg-slate-100 dark:bg-slate-700 py-3 text-center text-sm">🔈 B</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Stream picker bottom sheet ── -->
+  <div id="stream-sheet" onclick="closeSheet(event)"
+       class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm hidden items-end">
+    <div class="w-full max-w-sm mx-auto bg-white dark:bg-slate-800 rounded-t-2xl p-5 shadow-xl"
+         onclick="event.stopPropagation()">
+      <div class="w-10 h-1 bg-slate-200 dark:bg-slate-600 rounded-full mx-auto mb-4"></div>
+      <div id="sheet-station-name" class="text-base font-semibold mb-4 text-center"></div>
+      <div id="sheet-streams" class="space-y-2"></div>
+      <button onclick="closeSheet()"
+              class="btn mt-4 w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500 text-sm">Anuluj</button>
+    </div>
+  </div>
+
+  <script>
+    // ── Font scale ────────────────────────────────────────────────────────
+    const FONT_SCALE_MIN = 0.7, FONT_SCALE_MAX = 2.0, FONT_SCALE_STEP = 0.1;
+    const FONT_SCALE_DEFAULT = 1.4;
+    let _fontScale = parseFloat(localStorage.getItem("font-scale-v3") || FONT_SCALE_DEFAULT);
+
+    function _applyFontScale(v) {
+      _fontScale = Math.round(Math.max(FONT_SCALE_MIN, Math.min(FONT_SCALE_MAX, v)) * 10) / 10;
+      document.documentElement.style.setProperty("--font-scale", _fontScale);
+      document.getElementById("font-scale-label").textContent = Math.round(_fontScale * 100) + "%";
+      localStorage.setItem("font-scale-v3", _fontScale);
+    }
+    function changeFontScale(delta) { _applyFontScale(_fontScale + delta); }
+    function resetFontScale() { _applyFontScale(FONT_SCALE_DEFAULT); }
+    _applyFontScale(_fontScale);
+
+    // ── Settings popover ──────────────────────────────────────────────────
+    function toggleSettings(e) {
+      e.stopPropagation();
+      const pop = document.getElementById("settings-popover");
+      pop.classList.toggle("open");
+      if (pop.classList.contains("open")) _updateInstallRow();
+    }
+    document.addEventListener("click", e => {
+      const pop = document.getElementById("settings-popover");
+      if (!pop.contains(e.target)) pop.classList.remove("open");
+    });
+
+    function _updateInstallRow() {
+      const msg = document.getElementById("install-msg");
+      const btn = document.getElementById("install-btn-s");
+      const standalone = window.matchMedia("(display-mode: standalone)").matches
+                         || navigator.standalone;
+      if (standalone) {
+        msg.textContent = "✓ Zainstalowano";
+        btn.classList.add("hidden");
+        return;
+      }
+      if (_installPrompt) {
+        msg.textContent = "Zainstaluj aplikację";
+        btn.classList.remove("hidden");
+        return;
+      }
+      // Detect browser for instructions
+      const ua = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(ua)
+                    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const isFirefox = /Firefox\//.test(ua);
+      const isHTTPS = location.protocol === "https:" || location.hostname === "localhost";
+      btn.classList.add("hidden");
+      if (isIOS)
+        msg.textContent = "iOS: Share ↑ → Dodaj do ekranu";
+      else if (isFirefox)
+        msg.textContent = "Firefox: ☰ → Zainstaluj witrynę";
+      else if (!isHTTPS) {
+        msg.innerHTML = 'PWA wymaga HTTPS — <a href="https://github.com/mbawiec/yamaha-r-n500#https--pwa-install" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline">README</a>';
+      } else
+        msg.textContent = "Użyj ikony ↧ w pasku adresu";
+    }
+
+    // ── Feature flags ────────────────────────────────────────────────────────
+    const SHOW_SPEAKERS = false;
+    if (SHOW_SPEAKERS) document.getElementById("speakers-section").style.display = "";
+
+    // ── Input definitions ───────────────────────────────────────────────────
+    // icon: string (emoji) or {svg: "<svg>..."} for branded icons
+    const INPUTS = [
+      { id: "Spotify",   label: "Spotify",  icon: { svg: `<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path fill="white" d="M17.16 10.94c-2.72-1.62-7.21-1.77-9.81-.98a.75.75 0 0 0 .44 1.44c2.22-.68 5.93-.55 8.27.82a.75.75 0 1 0 .75-1.3l-.65.02zm-.1 2.8a.63.63 0 0 0-.87-.21c-2.27-1.37-5.72-1.76-8.41-1a.63.63 0 0 0 .37 1.21c2.34-.7 5.44-.35 7.49.87a.63.63 0 0 0 .86-.21l.56-.66zm-.96 2.68a.5.5 0 0 0-.69-.17c-1.98-1.18-4.48-1.45-7.41-.79a.5.5 0 1 0 .22.97c2.65-.6 4.92-.35 6.7.68a.5.5 0 0 0 .68-.17l.5-.52z"/></svg>` } },
+      { id: "AirPlay",   label: "AirPlay",  icon: { svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/><polygon points="12 15 17 21 7 21 12 15"/></svg>` } },
+      { id: "NET RADIO", label: "NET Radio", icon: "🌐" },
+      { id: "SERVER",    label: "Server",   icon: "🖥" },
+      { id: "CD",        label: "CD",       icon: "💿" },
+      { id: "USB",       label: "USB",      icon: "💾" },
+      { id: "LINE1",     label: "Line 1",   icon: "🎸" },
+      { id: "LINE2",     label: "Line 2",   icon: "🎸" },
+      { id: "LINE3",     label: "Line 3",   icon: "🎸" },
+      { id: "PHONO",     label: "Phono",    icon: "🎵" },
+      { id: "OPTICAL1",  label: "Opt 1",    icon: "🔦" },
+      { id: "OPTICAL2",  label: "Opt 2",    icon: "🔦" },
+      { id: "COAXIAL1",  label: "Coax 1",   icon: "🔌" },
+      { id: "COAXIAL2",  label: "Coax 2",   icon: "🔌" },
+      { id: "TUNER",     label: "Tuner",    icon: "📻" },
+    ];
+
+    const grid = document.getElementById("input-grid");
+    INPUTS.forEach(({ id, label, icon }) => {
+      const btn = document.createElement("button");
+      btn.id = "inp-" + id.replace(/\s/g, "_");
+      btn.className = "btn rounded-xl bg-slate-100 dark:bg-slate-700 py-2.5 px-3 flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-300";
+      const iconHtml = typeof icon === "object" && icon.svg
+        ? `<span class="shrink-0">${icon.svg}</span>`
+        : `<span class="text-xl leading-none">${icon}</span>`;
+      btn.innerHTML = iconHtml + `<span class="font-medium truncate">${label}</span>`;
+      btn.onclick = (e) => cmd("input/" + encodeURIComponent(id), e.currentTarget);
+      grid.appendChild(btn);
+    });
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let S = { power: "Standby", volume_raw: -400, volume_db: "-40.0", input: "", mute: "Off" };
+
+    function _setInputActive(inputId) {
+      INPUTS.forEach(({ id }) => {
+        const btn = document.getElementById("inp-" + id.replace(/\s/g, "_"));
+        if (!btn) return;
+        if (id === inputId) {
+          btn.classList.add("inp-active");
+        } else {
+          btn.classList.remove("inp-active");
+        }
+      });
+    }
+
+    // ── Input display names ──────────────────────────────────────────────────
+    const INPUT_DISPLAY = {
+      "NET RADIO": "NET Radio",
+      "SERVER": "Server",
+      "Spotify": "Spotify",
+      "AirPlay": "AirPlay",
+    };
+    function inputDisplayName(id) { return INPUT_DISPLAY[id] || id; }
+
+    function updateUI(s) {
+      Object.assign(S, s);
+
+      if (s.volume_db !== undefined && _pendVol === null && !_volInFlight) {
+        document.getElementById("vol-display").textContent = s.volume_db + " dB";
+      }
+      if (s.volume_raw !== undefined && _pendVol === null && !_volInFlight) {
+        document.getElementById("vol-slider").value = s.volume_raw;
+      }
+
+      if (s.power !== undefined) {
+        const on = s.power === "On";
+        document.getElementById("dot-power").className =
+          "w-2.5 h-2.5 rounded-full transition-colors " + (on ? "bg-green-400" : "bg-slate-300 dark:bg-slate-600");
+        document.getElementById("lbl-power").textContent = on ? "On" : "Standby";
+        document.getElementById("lbl-power").className =
+          on ? "text-green-600 dark:text-green-400 font-semibold" : "text-slate-500 dark:text-slate-400";
+        document.getElementById("btn-power").className =
+          "btn h-10 px-3 rounded-xl text-sm font-medium flex items-center gap-1.5 " +
+          (on ? "bg-green-100 dark:bg-green-900/40" : "bg-slate-100 dark:bg-slate-700");
+      }
+
+      if (s.mute !== undefined) {
+        const muted = s.mute === "On";
+        document.getElementById("icon-mute").textContent = muted ? "🔇" : "🔊";
+        document.getElementById("btn-mute").className =
+          "btn w-10 h-10 rounded-xl flex items-center justify-center text-xl " +
+          (muted ? "bg-rose-100 dark:bg-rose-900/40" : "bg-slate-100 dark:bg-slate-700");
+      }
+
+      if (s.input !== undefined) {
+        document.getElementById("hdr-input").textContent = inputDisplayName(s.input) || "—";
+        _setInputActive(s.input);
+      }
+    }
+
+    // ── WebSocket ────────────────────────────────────────────────────────────
+    let ws, wsDelay = 1000;
+    function connectWS() {
+      const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(wsProto + "//" + location.host + "/ws");
+      ws.onopen = () => {
+        document.getElementById("dot-ws").className = "w-2 h-2 rounded-full transition-colors bg-emerald-400";
+        wsDelay = 1000;
+      };
+      ws.onclose = () => {
+        document.getElementById("dot-ws").className = "w-2 h-2 rounded-full transition-colors bg-slate-300 dark:bg-slate-600";
+        setTimeout(connectWS, wsDelay = Math.min(wsDelay * 1.5, 15000));
+      };
+      ws.onerror = () => ws.close();
+      ws.onmessage = e => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === "status") updateUI(msg.data);
+          if (msg.type === "radio_info") updateRadioInfo(msg.data);
+        } catch (_) {}
+      };
+    }
+    connectWS();
+
+    // ── Commands ─────────────────────────────────────────────────────────────
+    async function cmd(endpoint, btn = null) {
+      // Immediate visual feedback — pending state
+      if (btn) { btn.classList.add("btn-pending"); btn.disabled = true; }
+      try {
+        const r = await fetch("/api/" + endpoint, { method: "POST" });
+        const d = await r.json();
+        if (d.ok && d.data) updateUI(d.data);
+        // Confirmed state — brief green flash applied AFTER updateUI rewrites classes
+        if (btn && d.ok) {
+          btn.classList.add("btn-confirmed");
+          setTimeout(() => btn.classList.remove("btn-confirmed"), 600);
+        }
+      } catch (e) { console.warn("cmd error:", e); }
+      finally { if (btn) { btn.classList.remove("btn-pending"); btn.disabled = false; } }
+    }
+
+    function togglePower(btn) { cmd("power/" + (S.power === "On" ? "Standby" : "On"), btn); }
+    function toggleMute(btn)   { cmd("mute/"  + (S.mute  === "On" ? "Off"     : "On"), btn); }
+
+    // ── PWA install ───────────────────────────────────────────────────────────
+    let _installPrompt = null;
+    window.addEventListener("beforeinstallprompt", e => {
+      e.preventDefault();
+      _installPrompt = e;
+      document.getElementById("btn-install").classList.remove("hidden");
+    });
+    window.addEventListener("appinstalled", () => {
+      document.getElementById("btn-install").classList.add("hidden");
+      document.getElementById("install-btn-s").classList.add("hidden");
+      _installPrompt = null;
+    });
+    async function installPWA() {
+      if (!_installPrompt) return;
+      const prompt = _installPrompt;
+      _installPrompt = null;
+      // Always hide install buttons before showing the OS dialog
+      document.getElementById("btn-install").classList.add("hidden");
+      document.getElementById("install-btn-s").classList.add("hidden");
+      try {
+        prompt.prompt();
+        const { outcome } = await prompt.userChoice;
+        if (outcome !== "accepted") {
+          // User dismissed — re-enable when browser fires the event again
+          // (browser controls when/whether to re-fire)
+        }
+      } catch (_) { /* browser may block if called outside user gesture */ }
+    }
+
+    // ── Volume — debounced ────────────────────────────────────────────────────
+    const VOL_MIN = -800, VOL_MAX = 0;
+    const VOL_DEBOUNCE = 150;
+
+    let _pendVol = null, _volInFlight = false, _volTimer = null;
+
+    function adjustVolume(delta) {
+      const base = _pendVol !== null ? _pendVol : (S.volume_raw || 0);
+      _pendVol = Math.max(VOL_MIN, Math.min(VOL_MAX, base + delta));
+      _applyVolDisplay(_pendVol);
+      _scheduleVolSend();
+    }
+
+    function setVolumeTarget(val) {
+      _pendVol = Math.max(VOL_MIN, Math.min(VOL_MAX, parseInt(val)));
+      _applyVolDisplay(_pendVol);
+      _scheduleVolSend();
+    }
+
+    function _applyVolDisplay(raw) {
+      document.getElementById("vol-display").textContent = (raw / 10).toFixed(1) + " dB";
+      document.getElementById("vol-slider").value = raw;
+    }
+
+    function _scheduleVolSend() {
+      clearTimeout(_volTimer);
+      _volTimer = setTimeout(_sendVol, VOL_DEBOUNCE);
+    }
+
+    async function _sendVol() {
+      if (_pendVol === null) return;
+      const target = _pendVol;
+      _volInFlight = true;
+      try {
+        await fetch("/api/volume/set/" + target, { method: "POST" });
+        if (_pendVol === target) _pendVol = null;
+      } catch (e) {
+        console.warn("volume error:", e);
+      } finally {
+        _volInFlight = false;
+      }
+    }
+
+    // ── Radio ─────────────────────────────────────────────────────────────────
+    let STATIONS = [];
+    let _filterText = "";
+    let activeStation = null, activeStream = null;
+
+    function updateRadioInfo(info) {
+      if (!info || info.playback !== "Play") return;
+      const section = document.getElementById("radio-playing-section");
+      const nameEl  = document.getElementById("radio-station-name");
+      const songRow  = document.getElementById("radio-song-title");
+      const songText = document.getElementById("radio-song-text");
+
+      section.classList.remove("hidden");
+      if (info.station) nameEl.textContent = info.station;
+      if (info.song) {
+        songText.textContent = info.song;
+        songRow.classList.remove("hidden");
+      } else {
+        songRow.classList.add("hidden");
+      }
+    }
+
+    async function loadRadio() {
+      document.getElementById("radio-list").innerHTML =
+        '<div class="text-xs text-slate-400 text-center py-2">ładowanie…</div>';
+      try {
+        const r = await fetch("/api/radio");
+        const d = await r.json();
+        if (d.ok) { STATIONS = d.data; renderRadioList(); }
+        else { document.getElementById("radio-list").innerHTML =
+          '<div class="text-xs text-rose-500 text-center py-2">Błąd ładowania stacji</div>'; }
+      } catch (e) {
+        document.getElementById("radio-list").innerHTML =
+          '<div class="text-xs text-rose-500 text-center py-2">Brak połączenia</div>';
+      }
+    }
+
+    function filterRadio(text) {
+      _filterText = text.trim().toLowerCase();
+      renderRadioList();
+    }
+
+    function renderRadioList() {
+      const el = document.getElementById("radio-list");
+      if (!STATIONS.length) {
+        el.innerHTML = '<div class="text-xs text-slate-400 text-center py-2">brak stacji</div>';
+        return;
+      }
+
+      const q = _filterText;
+      const filtered = q
+        ? STATIONS.filter(st => st.name.toLowerCase().includes(q) || st.category.toLowerCase().includes(q))
+        : STATIONS;
+
+      if (!filtered.length) {
+        el.innerHTML = '<div class="text-xs text-slate-400 text-center py-2">brak wyników</div>';
+        return;
+      }
+
+      // Group by category
+      const categories = [];
+      const catMap = {};
+      for (const st of filtered) {
+        if (!catMap[st.category]) { catMap[st.category] = []; categories.push(st.category); }
+        catMap[st.category].push(st);
+      }
+
+      el.innerHTML = "";
+      const showCats = categories.length > 1 || !q;
+
+      for (const cat of categories) {
+        if (showCats) {
+          const hdr = document.createElement("div");
+          hdr.className = "text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 pt-2 pb-1 first:pt-0";
+          hdr.textContent = cat;
+          el.appendChild(hdr);
+        }
+        for (const st of catMap[cat]) {
+          const isActive = activeStation === st.name;
+          const single = st.streams.length === 1 && st.streams[0].label === "main";
+          const btn = document.createElement("button");
+          btn.className =
+            "btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm transition-colors " +
+            (isActive
+              ? "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300"
+              : "bg-slate-50 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700");
+          const badge = single
+            ? ""
+            : `<span class="text-xs shrink-0 ${isActive ? "text-sky-500" : "text-slate-400"}">${st.streams.length}×</span>`;
+          btn.innerHTML =
+            `<span class="text-base leading-none shrink-0">${isActive ? "▶" : "📻"}</span>` +
+            `<span class="font-medium flex-1 truncate">${st.name}</span>` +
+            badge;
+          btn.onclick = () => {
+            if (single) {
+              playStation(st.name, st.streams[0].label);
+            } else {
+              openSheet(st);
+            }
+          };
+          el.appendChild(btn);
+        }
+      }
+    }
+
+    function openSheet(st) {
+      document.getElementById("sheet-station-name").textContent = st.name;
+      const container = document.getElementById("sheet-streams");
+      container.innerHTML = "";
+      st.streams.forEach(s => {
+        const isPreferred = s.label === st.preferred;
+        const btn = document.createElement("button");
+        btn.className =
+          "btn w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm " +
+          "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200" +
+          (isPreferred ? " ring-1 ring-sky-400/50" : "");
+        btn.innerHTML =
+          `<span>${s.label}${isPreferred ? ' <span class="text-sky-500 text-xs">zalecane</span>' : ""}</span>` +
+          `<span class="text-slate-400 text-xs truncate max-w-40 ml-2">${s.url.replace(/https?:\/\//, "")}</span>`;
+        btn.onclick = () => { closeSheet(); playStation(st.name, s.label); };
+        container.appendChild(btn);
+      });
+      const sheet = document.getElementById("stream-sheet");
+      sheet.classList.remove("hidden");
+      sheet.classList.add("flex");
+    }
+
+    function closeSheet(e) {
+      if (e && e.target !== document.getElementById("stream-sheet")) return;
+      const sheet = document.getElementById("stream-sheet");
+      sheet.classList.add("hidden");
+      sheet.classList.remove("flex");
+    }
+
+    async function playStation(station, stream) {
+      activeStation = station; activeStream = stream;
+      renderRadioList();
+
+      // Show now-playing section with connecting indicator
+      const section = document.getElementById("radio-playing-section");
+      document.getElementById("radio-station-name").textContent = "▶ Łączenie z " + station + "…";
+      document.getElementById("radio-song-title").classList.add("hidden");
+      section.classList.remove("hidden");
+
+      try {
+        const r = await fetch("/api/radio/play", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ station, stream })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          updateUI({ input: "NET RADIO" });
+          updateRadioInfo(d.data);
+          if (!d.data.station) {
+            document.getElementById("radio-station-name").textContent = station;
+          }
+        } else {
+          document.getElementById("radio-station-name").textContent = "⚠ " + d.error;
+          activeStation = null; activeStream = null;
+          renderRadioList();
+        }
+      } catch (e) {
+        document.getElementById("radio-station-name").textContent = "⚠ Błąd połączenia";
+        activeStation = null; activeStream = null;
+        renderRadioList();
+      }
+    }
+
+    async function radioStop() {
+      await fetch("/api/radio/stop", { method: "POST" });
+      activeStation = null; activeStream = null;
+      renderRadioList();
+      document.getElementById("radio-playing-section").classList.add("hidden");
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/static/sw.js").catch(() => {});
+    }
+    loadRadio();
+  </script>
+</body>
+</html>

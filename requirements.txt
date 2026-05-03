@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+httpx
+pyyaml
+pydantic-settings
+jinja2
+aiofiles
+ujson

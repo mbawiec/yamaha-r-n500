@@ -1,0 +1,51 @@
+# Stacje radiowe – źródło danych dla aplikacji Yamaha R-N500
+# Format: Kategoria → Stacja → Jakość: URL   (wiele jakości na stację)
+#     lub: Kategoria → Stacja: URL            (jedna jakość – kliknięcie gra od razu)
+# Wszystkie URL zweryfikowane 2026-05-02 z RPi Zero W (Polska).
+
+Polskie:
+  Radio Nowy Świat:
+    AAC: "https://stream.rcs.revma.com/4md4m0a0fs8uv"
+    MP3: "https://stream.nowyswiat.online/mp3"
+  Radio 357: "https://stream.radio357.pl/"
+
+BBC:
+  # HLS (AAC ~96k) – działa poza UK. Yamaha R-N500 obsługuje HLS w NET RADIO.
+  BBC Radio 1: "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/cfs/bbc_radio_one.m3u8"
+  BBC Radio 2: "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/aks/bbc_radio_two.m3u8"
+  BBC Radio 3: "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/cfs/bbc_radio_three.m3u8"
+  BBC Radio 4: "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/aks/bbc_radio_fourfm.m3u8"
+  BBC World Service: "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/cfs/bbc_world_service.m3u8"
+
+Angielskie:
+  KEXP Seattle:
+    MP3 128k: "https://kexp-mp3-128.streamguys1.com/kexp128.mp3"
+  NTS Radio 1: "https://stream-relay-geo.ntslive.net/stream"
+  NTS Radio 2: "https://stream-relay-geo.ntslive.net/stream2"
+  WNYC New York: "https://fm939.wnyc.org/wnycfm.aac"
+  Triple J Australia: "https://abc.streamguys1.com/live/triplejnsw/icecast.audio"
+  Double J Australia: "https://abc.streamguys1.com/live/doublejnsw/icecast.audio"
+  RNZ National: "http://radionz-ice.streamguys.com/national.mp3"
+  RNZ Concert: "http://radionz-ice.streamguys.com/concert.mp3"
+
+Radio France:
+  FIP:
+    Główny: "https://icecast.radiofrance.fr/fip-midfi.mp3"
+    Rock: "https://icecast.radiofrance.fr/fiprock-midfi.mp3"
+    Jazz: "https://icecast.radiofrance.fr/fipjazz-midfi.mp3"
+  France Inter: "https://icecast.radiofrance.fr/franceinter-midfi.mp3"
+  France Musique: "https://icecast.radiofrance.fr/francemusique-midfi.mp3"
+
+Audiofil:
+  Radio Paradise:
+    FLAC: "https://stream.radioparadise.com/flac"
+    AAC 320k: "https://stream.radioparadise.com/aac-320"
+  Radio Paradise Mellow: "https://stream.radioparadise.com/mellow-flac"
+  Radio Paradise Rock: "https://stream.radioparadise.com/rock-flac"
+  Radio Swiss Jazz: "http://stream.srg-ssr.ch/m/rsj/mp3_128"
+  Radio Swiss Classic: "http://stream.srg-ssr.ch/m/rsc_de/mp3_128"
+
+Chill i Jazz:
+  SomaFM Groove Salad: "https://ice1.somafm.com/groovesalad-128-aac"
+  SomaFM Drone Zone: "https://ice1.somafm.com/dronezone-128-aac"
+  Classic FM UK: "http://media-ice.musicradio.com/ClassicFM"

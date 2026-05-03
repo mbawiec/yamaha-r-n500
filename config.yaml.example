@@ -1,0 +1,12 @@
+network:
+  yamaha_ip: "192.168.1.100"    # IP wzmacniacza Yamaha R-N500
+  rpi_ip: "192.168.1.2"        # IP Raspberry Pi (opcjonalne – domyślnie X.X.X.2)
+  api_port: 8080
+  poll_interval: 2.0            # Interwał odpytywania statusu [s]
+
+radio:
+  stations_path: "/home/pi/yamaha-r-n500/config/stations.yml"
+  ycast_stations_path: "/home/pi/yamaha-r-n500/config/stations_ycast.yml"
+
+system:
+  max_volume_limit: -200        # Minimalny poziom głośności [dB × 10]
