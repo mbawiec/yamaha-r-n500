@@ -19,7 +19,8 @@ from pathlib import Path
 # ── Config ────────────────────────────────────────────────────────────────────
 _CFG_PATH = Path(__file__).parent / "config.yaml"
 _YAMAHA_IP = "192.168.11.68"
-_APP_URL    = "http://192.168.11.2:8080"   # adres aplikacji webowej w sieci lokalnej
+_APP_HTTPS  = True   # set api_https: false in config.yaml for plain HTTP
+_APP_URL    = "https://192.168.11.2:8080"
 
 try:
     import yaml as _yaml
@@ -29,17 +30,19 @@ try:
             _net          = _cfg.get("network", {})
             _YAMAHA_IP    = _net.get("yamaha_ip",  _YAMAHA_IP)
             _port         = _net.get("api_port",   8080)
+            _APP_HTTPS    = _net.get("api_https",  _APP_HTTPS)
+            _scheme       = "https" if _APP_HTTPS else "http"
             _host         = _net.get("app_host",   None)
             if _host:
-                _APP_URL = f"http://{_host}:{_port}"
+                _APP_URL = f"{_scheme}://{_host}:{_port}"
             else:
-                # derive from yamaha_ip subnet – same host as RPi (usually .2)
                 _octets = _YAMAHA_IP.rsplit(".", 1)
                 _rpi_ip = _net.get("rpi_ip", _octets[0] + ".2" if len(_octets) == 2 else "192.168.11.2")
-                _APP_URL = f"http://{_rpi_ip}:{_port}"
+                _APP_URL = f"{_scheme}://{_rpi_ip}:{_port}"
 except ImportError:
     pass  # yaml not installed — use defaults
 
+# Yamaha device always uses plain HTTP on port 80
 URL = f"http://{_YAMAHA_IP}/YamahaRemoteControl/ctrl"
 HEADERS = {"Content-Type": "text/xml"}
 
@@ -100,7 +103,7 @@ def _decode(s: str) -> str:
 async def app_get(path: str) -> dict:
     """GET {_APP_URL}{path} → parsed JSON data."""
     import httpx
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(verify=False) as client:
         r = await client.get(f"{_APP_URL}{path}", timeout=10.0)
         r.raise_for_status()
         j = r.json()
@@ -110,7 +113,7 @@ async def app_get(path: str) -> dict:
 async def app_post(path: str, body: dict) -> dict:
     """POST {_APP_URL}{path} JSON → parsed JSON data."""
     import httpx
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(verify=False) as client:
         r = await client.post(f"{_APP_URL}{path}", json=body, timeout=60.0)
         r.raise_for_status()
         j = r.json()
@@ -315,7 +318,7 @@ async def radio_play_api(station: str, stream: str | None = None,
 def main():
     parser = argparse.ArgumentParser(
         prog="yamaha.py",
-        description="🎛 Sterowanie amplitunerem Yamaha R-N500 przez sieć (HTTP XML API)",
+        description="🎛 Sterowanie amplitunerem Yamaha R-N500 przez sieć (https XML API)",
         epilog=f"""
 Przykłady:
   python yamaha.py status
@@ -328,7 +331,7 @@ Przykłady:
   python yamaha.py radio list --filter bbc
   python yamaha.py radio play "Radio 357"
   python yamaha.py radio play "Radio Nowy Świat" --stream AAC
-  python yamaha.py radio play "Moja stacja" --url https://stream.example.com/live.mp3
+  python yamaha.py radio play "Moja stacja" --url httpss://stream.example.com/live.mp3
   python yamaha.py radio info
   python yamaha.py radio stop
 
@@ -354,8 +357,9 @@ App API:  {_APP_URL}
     mute_p = sub.add_parser("mute", help="Wycisz / odcisz")
     mute_p.add_argument("state", choices=["On", "Off"])
 
-    inp = sub.add_parser("input", help="Zmień wejście sygnałowe")
-    inp.add_argument("source", help=f"Dostępne: {', '.join(VALID_INPUTS)}")
+    inp = sub.add_parser("input", help="Zmień wejście sygnałowe (bez argumentu — pokaż listę)")
+    inp.add_argument("source", nargs="?", default=None,
+                     help=f"Wejście. Dostępne: {', '.join(VALID_INPUTS)}")
 
     spk = sub.add_parser("speaker", help="Steruj głośnikami A/B")
     spk.add_argument("speaker", choices=["A", "B"])
@@ -403,7 +407,13 @@ App API:  {_APP_URL}
                 await mute_cmd(args.state)
 
             elif args.cmd == "input":
-                await select_input(args.source)
+                if args.source is None:
+                    print("\n  Dostępne wejścia:")
+                    for i in VALID_INPUTS:
+                        print(f"    {i}")
+                    print()
+                else:
+                    await select_input(args.source)
 
             elif args.cmd == "speaker":
                 await select_speaker(args.speaker, args.state)
@@ -431,14 +441,14 @@ App API:  {_APP_URL}
             else:
                 parser.print_help()
 
-        except httpx.ConnectError as e:
+        except httpsx.ConnectError as e:
             if _APP_URL in str(e):
                 print(f"❌ Brak połączenia z app API ({_APP_URL})")
             else:
                 print(f"❌ Brak połączenia z Yamaha ({_YAMAHA_IP})")
             sys.exit(1)
-        except httpx.HTTPStatusError as e:
-            print(f"❌ HTTP {e.response.status_code}: {e}")
+        except httpsx.httpsStatusError as e:
+            print(f"❌ https {e.response.status_code}: {e}")
             sys.exit(1)
         except Exception as e:
             print(f"❌ Błąd: {e}")
