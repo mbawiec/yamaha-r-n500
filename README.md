@@ -111,44 +111,40 @@ sequenceDiagram
 
 ## Components
 
-```plantuml
-@startuml
-skinparam componentStyle rectangle
-skinparam monochrome true
+```mermaid
+graph LR
+    BR(["🌐 Browser"])
+    CLI(["💻 yamaha.py CLI"])
 
-package "Raspberry Pi Zero W" {
-  component "FastAPI + WebSocket\napp/main.py" as MAIN
-  component "REST routes\napp/api/routes.py" as RT
-  component "YamahaXML client\napp/core/yamaha_xml.py" as XML
-  component "RadioManager\napp/core/radio_manager.py" as RM
-  component "ConfigLoader\napp/core/config_loader.py" as CFG
-  component "PWA (Tailwind)\napp/web/templates/index.html" as UI
-  component "YCast" as YC
-  file "config/stations.yml" as STA
-  file "config/stations_ycast.yml\n(auto-generated)" as YCSTA
-}
+    subgraph RPI["Raspberry Pi Zero W"]
+        UI["PWA\nindex.html"]
+        MAIN["FastAPI + WebSocket\napp/main.py"]
+        RT["REST routes\napp/api/routes.py"]
+        XML["YamahaXML client\napp/core/yamaha_xml.py"]
+        RM["RadioManager\napp/core/radio_manager.py"]
+        CFG["ConfigLoader\napp/core/config_loader.py"]
+        YC["YCast :8088"]
+        STA[("config/stations.yml")]
+        YCSTA[("stations_ycast.yml\nauto-generated")]
+    end
 
-database "config.yaml" as CFG_FILE
-component "Yamaha R-N500" as Y
-actor "Browser" as BR
-actor "yamaha.py (CLI)" as CLI
+    CFG_FILE[("config.yaml")]
+    Y["🎵 Yamaha R-N500\n:80 XML API"]
 
-BR --> UI : HTTP GET /
-BR <--> MAIN : WebSocket /ws
-BR --> RT : REST /api/*
-CLI --> RT : REST /api/*
-CLI --> XML : HTTP XML (direct)
-RT --> XML : control
-RT --> RM : radio play
-RM --> XML : menu navigation
-RM --> YCSTA : generates
-MAIN --> STA : loads
-YCSTA --> YC : stations (vTuner format)
-XML --> Y : HTTP XML :80
-YC --> Y : HTTP :8088
-CFG --> CFG_FILE
-
-@enduml
+    BR -->|"HTTP GET /"| UI
+    BR <-->|"WebSocket /ws"| MAIN
+    BR -->|"REST /api/*"| RT
+    CLI -->|"REST /api/*"| RT
+    CLI -->|"HTTP XML direct"| XML
+    RT --> XML
+    RT --> RM
+    RM -->|"menu navigation"| XML
+    RM -->|generates| YCSTA
+    MAIN -->|loads| STA
+    YCSTA -->|"vTuner format"| YC
+    XML -->|"HTTP XML :80"| Y
+    YC -->|"HTTP :8088"| Y
+    CFG --> CFG_FILE
 ```
 
 ---
