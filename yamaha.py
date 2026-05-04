@@ -61,14 +61,38 @@ VALID_INPUTS = [
 _MENU_WAIT_TRIES = 10
 _MENU_WAIT_DELAY = 0.8
 
+# Persistent HTTP clients — created once per process, eliminates repeated TCP handshakes.
+# (matches the optimization in app/core/yamaha_xml.py)
+import httpx as _httpx
+_yamaha_client: "_httpx.AsyncClient | None" = None
+_app_client: "_httpx.AsyncClient | None" = None
+
+
+def _init_clients() -> None:
+    global _yamaha_client, _app_client
+    _yamaha_client = _httpx.AsyncClient(
+        timeout=_httpx.Timeout(3.0),
+        limits=_httpx.Limits(max_connections=4, max_keepalive_connections=2, keepalive_expiry=30.0),
+    )
+    _app_client = _httpx.AsyncClient(
+        verify=False,
+        timeout=_httpx.Timeout(connect=3.0, read=60.0, write=10.0, pool=5.0),
+        limits=_httpx.Limits(max_connections=4, max_keepalive_connections=2, keepalive_expiry=30.0),
+    )
+
+
+async def _close_clients() -> None:
+    if _yamaha_client:
+        await _yamaha_client.aclose()
+    if _app_client:
+        await _app_client.aclose()
+
 
 # ── HTTP helpers ──────────────────────────────────────────────────────────────
 async def send(payload):
-    import httpx
-    async with httpx.AsyncClient() as client:
-        r = await client.post(URL, data=payload, headers=HEADERS, timeout=3.0)
-        r.raise_for_status()
-        return r.content.decode("utf-8", errors="replace")
+    r = await _yamaha_client.post(URL, data=payload, headers=HEADERS)
+    r.raise_for_status()
+    return r.content.decode("utf-8", errors="replace")
 
 
 def _check_rc(xml, context=""):
@@ -102,22 +126,18 @@ def _decode(s: str) -> str:
 # ── App API helpers (przez sieć, nie lokalnie) ────────────────────────────────
 async def app_get(path: str) -> dict:
     """GET {_APP_URL}{path} → parsed JSON data."""
-    import httpx
-    async with httpx.AsyncClient(verify=False) as client:
-        r = await client.get(f"{_APP_URL}{path}", timeout=10.0)
-        r.raise_for_status()
-        j = r.json()
-        return j.get("data", j)
+    r = await _app_client.get(f"{_APP_URL}{path}")
+    r.raise_for_status()
+    j = r.json()
+    return j.get("data", j)
 
 
 async def app_post(path: str, body: dict) -> dict:
     """POST {_APP_URL}{path} JSON → parsed JSON data."""
-    import httpx
-    async with httpx.AsyncClient(verify=False) as client:
-        r = await client.post(f"{_APP_URL}{path}", json=body, timeout=60.0)
-        r.raise_for_status()
-        j = r.json()
-        return j.get("data", j)
+    r = await _app_client.post(f"{_APP_URL}{path}", json=body)
+    r.raise_for_status()
+    j = r.json()
+    return j.get("data", j)
 
 
 # ── Status ────────────────────────────────────────────────────────────────────
@@ -384,7 +404,7 @@ App API:  {_APP_URL}
     args = parser.parse_args()
 
     async def runner():
-        import httpx
+        _init_clients()
         try:
             if args.cmd == "status":
                 await cmd_status()
@@ -441,18 +461,20 @@ App API:  {_APP_URL}
             else:
                 parser.print_help()
 
-        except httpsx.ConnectError as e:
+        except _httpx.ConnectError as e:
             if _APP_URL in str(e):
                 print(f"❌ Brak połączenia z app API ({_APP_URL})")
             else:
                 print(f"❌ Brak połączenia z Yamaha ({_YAMAHA_IP})")
             sys.exit(1)
-        except httpsx.httpsStatusError as e:
-            print(f"❌ https {e.response.status_code}: {e}")
+        except _httpx.HTTPStatusError as e:
+            print(f"❌ HTTP {e.response.status_code}: {e}")
             sys.exit(1)
         except Exception as e:
             print(f"❌ Błąd: {e}")
             sys.exit(1)
+        finally:
+            await _close_clients()
 
     asyncio.run(runner())
 
